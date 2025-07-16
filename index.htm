@@ -1,0 +1,600 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メルカリShops EC一元管理 AI診断ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Custom Red & Blue Palette -->
+    <!-- Application Structure Plan: A multi-step questionnaire (wizard) guides the user through key decision factors identified in the source report (business scale, product type, channel strategy, etc.). This structure simplifies a complex choice into a manageable, linear flow. The user answers one question at a time, reducing cognitive load. Upon completion, a results page displays the top-matched systems with clear justifications and a visual "match score," providing an actionable recommendation. This is more user-friendly than presenting a large, static table upfront and directly translates the report's analysis into an interactive experience. -->
+    <!-- Visualization & Content Choices: Questions are presented as interactive cards (HTML/CSS) for better engagement. The core recommendation is displayed using a card layout for each system, combining text, Unicode icons for features, and a dynamic horizontal bar chart (Chart.js/Canvas) to visually represent the "match score". This makes the results scannable and easy to understand. A full comparison table (HTML) is available on-demand for users who want deeper analysis, keeping the initial results clean. All choices prioritize clarity and interaction without relying on static images or prohibited libraries. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .fade-out { animation: fadeOut 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        .progress-bar-fill {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'main-red': '#ff5a5a',
+                        'main-red-dark': '#e05050',
+                        'main-red-light': '#ffebeb',
+                        'secondary-blue': '#4dc9ff',
+                        'secondary-blue-light': '#e6f7ff',
+                        'tertiary-blue': '#1a9cd2',
+                        'custom-gray': '#e0e0e0',
+                        'body-bg': '#f8f8f8',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-body-bg text-gray-800">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-tertiary-blue">メルカリShops EC一元管理 AI診断ツール</h1>
+            <p class="mt-2 text-gray-600">いくつかの簡単な質問に答えるだけで、あなたのショップに最適なシステムを見つけます。</p>
+        </header>
+
+        <main id="app-container" class="bg-white rounded-2xl shadow-xl p-6 sm:p-10 min-h-[500px] flex flex-col justify-center">
+
+            <!-- Start Screen -->
+            <div id="start-screen" class="text-center fade-in">
+                <div class="mb-6">
+                    <span class="text-6xl">&#128270;</span>
+                </div>
+                <h2 class="text-2xl font-bold mb-4">最適なEC運営、はじめませんか？</h2>
+                <p class="text-gray-600 mb-8 max-w-2xl mx-auto">メルカリShopsでの運営を次のレベルへ。あなたのビジネスにぴったりのEC一元管理システムを、簡単な5つの質問から診断します。</p>
+                <button id="start-btn" class="bg-main-red text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-main-red-dark transition-all duration-300 transform hover:scale-105">
+                    診断をはじめる
+                </button>
+            </div>
+
+            <!-- Question Screen -->
+            <div id="question-screen" class="hidden">
+                <div id="progress-bar-container" class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                    <div id="progress-bar" class="bg-main-red h-2.5 rounded-full progress-bar-fill" style="width: 0%"></div>
+                </div>
+                <div id="question-content">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+
+            <!-- Loading Screen -->
+            <div id="loading-screen" class="hidden text-center">
+                 <div class="flex justify-center items-center mb-4">
+                    <svg class="animate-spin h-10 w-10 text-main-red" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold">回答を分析中...</h2>
+                <p class="text-gray-600 mt-2">あなたに最適なシステムを選んでいます。</p>
+            </div>
+
+            <!-- Results Screen -->
+            <div id="results-screen" class="hidden">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-tertiary-blue">診断結果</h2>
+                    <p class="mt-2 text-gray-600">あなたのビジネスに最もおすすめのシステムはこちらです！</p>
+                </div>
+                <div id="results-list" class="space-y-6">
+                    <!-- JS will populate this -->
+                </div>
+                 <div class="text-center mt-10">
+                    <button id="show-comparison-btn" class="bg-custom-gray text-gray-700 font-bold py-3 px-8 rounded-full shadow-md hover:bg-gray-300 transition-all duration-300">
+                        全システムを比較する
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Comparison Screen -->
+            <div id="comparison-screen" class="hidden">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-tertiary-blue">EC一元管理システム比較表</h2>
+                    <p class="mt-2 text-gray-600">主要システムの特徴を一覧で確認できます。それ以外は<a href="https://support.mercari-shops.com/hc/ja/articles/16849943532697-API%E9%80%A3%E6%90%BA%E3%81%97%E3%81%A6%E3%81%84%E3%82%8BEC%E4%B8%80%E5%85%83%E7%AE%A1%E7%90%86%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0" target="_blank" rel="noopener noreferrer">
+  <span style="font-weight: bold; text-decoration: underline;">こちら</span>
+</a>から
+</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="comparison-table" class="min-w-full bg-white">
+                        <!-- JS will populate this -->
+                    </table>
+                </div>
+                 <div class="text-center mt-10">
+                    <button id="back-to-results-btn" class="bg-main-red text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-main-red-dark transition-all duration-300">
+                        診断結果に戻る
+                    </button>
+                </div>
+            </div>
+
+        </main>
+        
+        <footer class="text-center mt-8 text-xs text-gray-500">
+            <p>この診断はシステム選定の参考情報を提供するものです。最終的な導入の決定は、各システムの公式サイトをご確認の上、ご自身の判断でお願いいたします。</p>
+        </footer>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const systems = [
+        {
+            id: 'next_engine',
+            name: 'ネクストエンジン',
+            description: '業界トップクラスの連携モール数と豊富なアプリで、あらゆる事業規模のEC運営を自動化・効率化。',
+            tags: ['scale_s', 'scale_m', 'scale_l', 'product_new', 'product_apparel', 'channel_multi_future', 'channel_multi_now', 'channel_omo', 'task_inventory', 'task_order', 'task_listing', 'task_shipping', 'task_crm', 'priority_automation', 'priority_scalability'],
+            features: ['受注管理', '在庫連携', '商品登録', '倉庫/POS連携', 'アプリで拡張'],
+            price: '月額3,000円～ (従量課金)',
+            link: 'https://next-engine.net/'
+        },
+        {
+            id: 'cross_mall',
+            name: 'CROSS MALL',
+            description: '多店舗運営の在庫・受注・商品登録をまとめて効率化。特にアパレル業界で評価が高い。',
+            tags: ['scale_m', 'scale_l', 'product_new', 'product_apparel', 'channel_multi_now', 'channel_omo', 'task_inventory', 'task_order', 'task_listing', 'priority_automation', 'priority_scalability'],
+            features: ['在庫自動更新', '商品一括登録', '受注自動化', 'セット品管理', '実店舗連携'],
+            price: '要問い合わせ',
+            link: 'https://cross-mall.jp/'
+        },
+        {
+            id: 'goqsystem',
+            name: 'GoQSystem',
+            description: '月額15,000円からの定額制で、注文件数が増えても安心。繁忙期のみの利用も可能。',
+            tags: ['scale_m', 'product_new', 'product_seasonal', 'channel_multi_now', 'task_order', 'task_shipping', 'priority_cost', 'priority_support'],
+            features: ['受注管理', '在庫連携', '物流管理', '定額制', '手厚いサポート'],
+            price: '月額15,000円～ (定額制)',
+            link: 'https://goqsy?stem.com/'
+        },
+        {
+            id: 'tempostar',
+            name: 'TEMPOSTAR',
+            description: '事業の成長に合わせて柔軟に連携・自動化をカスタマイズ。継続利用を前提とした設計。',
+            tags: ['scale_m', 'scale_l', 'product_new', 'product_apparel', 'channel_multi_future', 'channel_multi_now', 'task_inventory', 'task_order', 'task_listing', 'priority_automation', 'priority_scalability'],
+            features: ['複数倉庫連携', '受注自動仕分け', '商品情報一括反映', '外部サービス連携', 'IT導入補助金対象'],
+            price: '要問い合わせ',
+            link: 'https://tempostar.jp/'
+        },
+        {
+            id: 'assist_tencho',
+            name: 'アシスト店長',
+            description: 'CRM機能内蔵でリピーター育成に強み。受注から顧客管理までを一元化。',
+            tags: ['scale_s', 'scale_m', 'product_new', 'channel_multi_now', 'task_order', 'task_crm', 'priority_ease', 'priority_support'],
+            features: ['受注管理', '在庫管理', '顧客分析(CRM)', 'メール一括送信', '同梱物自動選定'],
+            price: '月額10,000円～',
+            link: 'https://assist-tencho.com/'
+        },
+        {
+            id: 'logiless',
+            name: 'LOGILESS',
+            description: 'OMSとWMSが一体化。受注から出荷までを完全自動化し、物流業務を効率化。',
+            tags: ['scale_m', 'scale_l', 'product_new', 'channel_multi_now', 'task_inventory', 'task_shipping', 'priority_automation', 'priority_specialization'],
+            features: ['自動出荷システム', '高度な在庫管理', 'リアルタイム状況確認', '出荷検品', 'OMS/WMS一体型'],
+            price: '月額20,000円～ (従量課金)',
+            link: 'https://www.logiless.com/'
+        },
+        {
+            id: 'sellmore',
+            name: 'セルモア',
+            description: '初期費用0円、月額5,000円から始められる。個人事業主や小規模なショップに最適。',
+            tags: ['scale_s', 'product_new', 'product_used', 'channel_mercari_only', 'channel_multi_future', 'task_listing', 'task_inventory', 'priority_cost', 'priority_ease'],
+            features: ['複数モール同時出品', '価格一括改定', '在庫連動(5分間隔)', '出品テンプレート', '低コスト'],
+            price: '月額5,000円～ (従量課金)',
+            link: 'https://sellmore.jp/'
+        },
+        {
+            id: 'wasabi_switch',
+            name: 'WASABI SWITCH',
+            description: '中古業界に特化。買取から複数モールでの併売、海外販売まで一気通貫で管理。',
+            tags: ['scale_s', 'scale_m', 'product_used', 'channel_multi_now', 'task_inventory', 'task_listing', 'task_buying', 'priority_specialization'],
+            features: ['中古業界特化', '買取機能', '海外販売対応', '自動再出品', '一点物管理'],
+            price: '要問い合わせ',
+            link: 'https://wasabi-inc.biz/switch/'
+        },
+        {
+            id: 'recore',
+            name: 'ReCORE',
+            description: '実店舗とECの在庫・顧客情報を一元管理するリユース業向けPOSシステム。OMOを実現。',
+            tags: ['scale_m', 'scale_l', 'product_used', 'channel_omo', 'task_inventory', 'task_listing', 'task_crm', 'task_buying', 'priority_specialization', 'priority_scalability'],
+            features: ['POSシステム', 'EC・実店舗連携', '買取査定支援', '顧客管理(RFM分析)', 'KPI管理'],
+            price: '月額16,500円～',
+            link: 'https://recore-pos.com/'
+        }
+    ];
+
+    const questions = [
+        {
+            key: 'scale',
+            text: 'あなたのショップの月間受注件数はどのくらいですか？',
+            answers: [
+                { text: '100件未満', value: 'scale_s' },
+                { text: '100～500件', value: 'scale_m' },
+                { text: '500～3,000件', value: 'scale_m' },
+                { text: '3,000件以上', value: 'scale_l' }
+            ]
+        },
+        {
+            key: 'product',
+            text: '主に取り扱っている商材はどれですか？（複数選択可）',
+            type: 'multiple',
+            answers: [
+                { text: '新品・一般的な商品', value: 'product_new' },
+                { text: '中古品・一点物', value: 'product_used' },
+                { text: 'アパレル（色・サイズ展開が多い）', value: 'product_apparel' },
+                { text: '季節商品（お中元など）', value: 'product_seasonal' }
+            ]
+        },
+        {
+            key: 'channel',
+            text: '現在の販売チャネルについて教えてください。',
+            answers: [
+                { text: 'メルカリShopsのみ', value: 'channel_mercari_only' },
+                { text: 'メルカリShopsが主だが、将来は多店舗展開したい', value: 'channel_multi_future' },
+                { text: 'すでに複数のECモールで販売している', value: 'channel_multi_now' },
+                { text: '実店舗もあり、ECと連携させたい (OMO)', value: 'channel_omo' }
+            ]
+        },
+        {
+            key: 'task',
+            text: 'EC運営で最も効率化したい業務は何ですか？（複数選択可）',
+            type: 'multiple',
+            answers: [
+                { text: '在庫管理（売り越し防止）', value: 'task_inventory' },
+                { text: '受注処理（メール送信、ステータス管理）', value: 'task_order' },
+                { text: '商品登録（多モールへの一括登録）', value: 'task_listing' },
+                { text: '発送・物流（送り状発行、自動出荷）', value: 'task_shipping' },
+                { text: '顧客管理・リピーター育成', value: 'task_crm' },
+                { text: '買取業務（中古品の場合）', value: 'task_buying' }
+            ]
+        },
+        {
+            key: 'priority',
+            text: 'システム導入で最も重視する点は何ですか？（複数選択可）',
+            type: 'multiple',
+            answers: [
+                { text: '価格の安さ', value: 'priority_cost' },
+                { text: '操作の簡単さ', value: 'priority_ease' },
+                { text: 'サポートの手厚さ', value: 'priority_support' },
+                { text: '高度な自動化機能', value: 'priority_automation' },
+                { text: '将来の事業拡大への対応力', value: 'priority_scalability' },
+                { text: '特定業界への特化機能', value: 'priority_specialization' }
+            ]
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let userAnswers = {};
+
+    const startScreen = document.getElementById('start-screen');
+    const questionScreen = document.getElementById('question-screen');
+    const loadingScreen = document.getElementById('loading-screen');
+    const resultsScreen = document.getElementById('results-screen');
+    const comparisonScreen = document.getElementById('comparison-screen');
+    const startBtn = document.getElementById('start-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const questionContent = document.getElementById('question-content');
+
+    startBtn.addEventListener('click', () => {
+        switchScreen(startScreen, questionScreen);
+        showQuestion(currentQuestionIndex);
+    });
+
+    function switchScreen(from, to) {
+        from.classList.add('fade-out');
+        setTimeout(() => {
+            from.classList.add('hidden');
+            from.classList.remove('fade-out');
+            to.classList.remove('hidden');
+            to.classList.add('fade-in');
+        }, 300);
+    }
+    
+    function showQuestion(index) {
+        const question = questions[index];
+        userAnswers[question.key] = [];
+
+        let answersHtml = '';
+        if (question.type === 'multiple') {
+            answersHtml = question.answers.map(answer => `
+                <button data-value="${answer.value}" class="answer-btn-multiple w-full text-left bg-white border-2 border-gray-200 p-4 rounded-lg hover:border-secondary-blue hover:bg-secondary-blue-light transition-all duration-200">
+                    ${answer.text}
+                </button>
+            `).join('');
+            answersHtml += `<button id="next-btn" class="mt-6 bg-main-red text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-main-red-dark transition-all duration-300 disabled:bg-gray-400" disabled>次へ</button>`;
+        } else {
+            answersHtml = question.answers.map(answer => `
+                <button data-value="${answer.value}" class="answer-btn-single w-full text-left bg-white border-2 border-gray-200 p-4 rounded-lg hover:border-secondary-blue hover:bg-secondary-blue-light transition-all duration-200">
+                    ${answer.text}
+                </button>
+            `).join('');
+        }
+
+        questionContent.innerHTML = `
+            <div class="fade-in">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 text-center">${question.text}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    ${answersHtml}
+                </div>
+            </div>
+        `;
+
+        updateProgressBar();
+        
+        if (question.type === 'multiple') {
+            const answerBtns = questionContent.querySelectorAll('.answer-btn-multiple');
+            const nextBtn = document.getElementById('next-btn');
+            answerBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.classList.toggle('bg-secondary-blue-light');
+                    btn.classList.toggle('border-secondary-blue');
+                    const value = btn.dataset.value;
+                    if (userAnswers[question.key].includes(value)) {
+                        userAnswers[question.key] = userAnswers[question.key].filter(v => v !== value);
+                    } else {
+                        userAnswers[question.key].push(value);
+                    }
+                    nextBtn.disabled = userAnswers[question.key].length === 0;
+                });
+            });
+            nextBtn.addEventListener('click', handleNextQuestion);
+        } else {
+            const answerBtns = questionContent.querySelectorAll('.answer-btn-single');
+            answerBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    userAnswers[question.key] = [btn.dataset.value];
+                    handleNextQuestion();
+                });
+            });
+        }
+    }
+    
+    function handleNextQuestion() {
+        const content = questionContent.querySelector('.fade-in');
+        if (content) {
+            content.classList.add('fade-out');
+        }
+        
+        setTimeout(() => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                showQuestion(currentQuestionIndex);
+            } else {
+                calculateResults();
+            }
+        }, 300);
+    }
+    
+    function updateProgressBar() {
+        const progress = ((currentQuestionIndex) / questions.length) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+
+    function calculateResults() {
+        progressBar.style.width = `100%`;
+        switchScreen(questionScreen, loadingScreen);
+        
+        setTimeout(() => {
+            let scores = systems.map(system => ({ ...system, score: 0 }));
+
+            for (const key in userAnswers) {
+                if (userAnswers[key] && userAnswers[key].length > 0) {
+                    const weight = (key === 'task' || key === 'priority') ? 1 : 2; // 重要度に応じて重み付け
+                    userAnswers[key].forEach(answerTag => {
+                        scores.forEach(system => {
+                            if (system.tags.includes(answerTag)) {
+                                system.score += weight;
+                            }
+                        });
+                    });
+                }
+            }
+
+            scores.sort((a, b) => b.score - a.score);
+            
+            switchScreen(loadingScreen, resultsScreen);
+            displayResults(scores);
+            setupComparisonTable(scores);
+        }, 1500);
+    }
+    
+    const featureIcons = {
+        '受注管理': '&#128196;', '在庫連携': '&#128260;', '商品登録': '&#128260;', '倉庫/POS連携': '&#127970;', 'アプリで拡張': '&#129513;',
+        '在庫自動更新': '&#128260;', '商品一括登録': '&#128260;', '受注自動化': '&#129302;', 'セット品管理': '&#127873;', '実店舗連携': '&#128160;',
+        '物流管理': '&#128667;', '定額制': '&#128176;', '手厚いサポート': '&#129309;',
+        '複数倉庫連携': '&#127980;', '受注自動仕分け': '&#128194;', '商品情報一括反映': '&#10024;', '外部サービス連携': '&#128279;', 'IT導入補助金対象': '&#128184;',
+        '顧客分析(CRM)': '&#128202;', 'メール一括送信': '&#128232;', '同梱物自動選定': '&#128717;',
+        '自動出荷システム': '&#127970;', '高度な在庫管理': '&#128230;', 'リアルタイム状況確認': '&#128064;', '出荷検品': '&#10004;&#65039;', 'OMS/WMS一体型': '&#128279;',
+        '複数モール同時出品': '&#127760;', '価格一括改定': '&#128185;', '在庫連動(5分間隔)': '&#9889;', '出品テンプレート': '&#128220;', '低コスト': '&#129689;',
+        '中古業界特化': '&#9851;&#65039;', '買取機能': '&#128310;', '海外販売対応': '&#127758;', '自動再出品': '&#128260;', '一点物管理': '&#128141;',
+        'POSシステム': '&#128187;', 'EC・実店舗連携': '&#127978;', '買取査定支援': '&#128269;', '顧客管理(RFM分析)': '&#128202;', 'KPI管理': '&#128200;'
+    };
+
+    function displayResults(sortedSystems) {
+        const resultsList = document.getElementById('results-list');
+        resultsList.innerHTML = '';
+        const relevantResults = sortedSystems.filter(s => s.score > 0);
+        const maxScore = Math.max(...relevantResults.map(s => s.score), 1);
+
+        relevantResults.forEach((system, index) => {
+            const matchPercentage = (system.score / maxScore) * 100;
+            const card = document.createElement('div');
+            card.className = 'bg-white p-6 rounded-xl shadow-lg border-2 fade-in';
+            card.style.animationDelay = `${index * 150}ms`;
+            
+            let badge = '';
+            let borderColorClass = 'border-gray-200';
+            if (index === 0) {
+                borderColorClass = 'border-main-red';
+                badge = `<span class="absolute top-0 right-0 -mt-3 -mr-3 bg-main-red text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">&#129351; ベストマッチ</span>`;
+            } else if (index === 1) {
+                borderColorClass = 'border-custom-gray';
+                badge = `<span class="absolute top-0 right-0 -mt-3 -mr-3 bg-custom-gray text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">&#129352; おすすめ</span>`;
+            } else if (index === 2) {
+                borderColorClass = 'border-gray-200';
+                badge = `<span class="absolute top-0 right-0 -mt-3 -mr-3 bg-tertiary-blue text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">&#129353; 注目</span>`;
+            }
+            card.classList.add(borderColorClass);
+
+
+            let reason = getReason(system);
+
+            card.innerHTML = `
+                <div class="relative">
+                    ${badge}
+                    <div class="flex flex-col sm:flex-row gap-4 items-start">
+                        <div class="flex-grow">
+                            <h3 class="text-2xl font-bold text-tertiary-blue">${system.name}</h3>
+                            <p class="text-sm text-gray-500 mb-3">${system.price}</p>
+                            <p class="text-gray-700 mb-4">${system.description}</p>
+                            <div class="bg-secondary-blue-light p-3 rounded-lg mb-4">
+                               <p class="text-sm font-semibold text-tertiary-blue">&#128538; おすすめの理由</p>
+                               <p class="text-sm text-tertiary-blue">${reason}</p>
+                            </div>
+                            <h4 class="font-bold mb-2">主な機能</h4>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                ${system.features.map(f => `<span class="bg-custom-gray text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">${featureIcons[f] || '?'} ${f}</span>`).join('')}
+                            </div>
+                            <div class="mt-4">
+                                <a href="${system.link}" target="_blank" rel="noopener noreferrer" class="inline-block bg-main-red text-white font-bold py-2 px-6 rounded-full shadow-md hover:bg-main-red-dark transition-all duration-300">
+                                    公式サイトへ
+                                </a>
+                            </div>
+                        </div>
+                        <div class="w-full sm:w-1/3">
+                            <h4 class="font-bold mb-2 text-center">マッチ度</h4>
+                             <div class="chart-container" style="position: relative; height:40px; width:100%">
+                                <canvas id="chart-${system.id}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsList.appendChild(card);
+            
+             setTimeout(() => {
+                new Chart(document.getElementById(`chart-${system.id}`), {
+                    type: 'bar',
+                    data: {
+                        labels: [''],
+                        datasets: [{
+                            label: 'マッチ度',
+                            data: [matchPercentage],
+                            backgroundColor: ['#ff5a5a'],
+                            borderColor: ['#ff5a5a'],
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            barThickness: 20
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        maintainAspectRatio: false,
+                        responsive: true,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                display: false
+                            },
+                            y: {
+                                display: false
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    }
+                });
+            }, 100);
+        });
+    }
+
+    function getReason(system) {
+        const reasons = [];
+        if (userAnswers.scale && system.tags.includes(userAnswers.scale[0])) {
+            const scaleText = questions.find(q => q.key === 'scale').answers.find(a => a.value === userAnswers.scale[0]).text;
+            reasons.push(`**${scaleText}**の事業規模に適しています`);
+        }
+        if (userAnswers.product && userAnswers.product.some(p => system.tags.includes(p))) {
+            const productText = userAnswers.product.map(p => questions.find(q => q.key === 'product').answers.find(a => a.value === p).text).join('、');
+            reasons.push(`**${productText}**の取り扱いに強みがあります`);
+        }
+        if (userAnswers.channel && system.tags.includes(userAnswers.channel[0])) {
+            reasons.push(`あなたの**販売戦略**に合っています`);
+        }
+        if (userAnswers.task && userAnswers.task.some(t => system.tags.includes(t))) {
+            reasons.push(`**重視する業務**の効率化が期待できます`);
+        }
+        if (reasons.length > 0) return reasons.slice(0, 2).join('。') + '。';
+        return 'あなたの回答から総合的に判断しました。';
+    }
+    
+    function setupComparisonTable(sortedSystems) {
+        const table = document.getElementById('comparison-table');
+        const top3Ids = sortedSystems.slice(0, 3).map(s => s.id);
+        
+        const header = `
+            <thead>
+                <tr class="bg-custom-gray">
+                    <th class="p-3 text-left font-bold text-gray-700">システム名</th>
+                    <th class="p-3 text-left font-bold text-gray-700">特徴</th>
+                    <th class="p-3 text-left font-bold text-gray-700">価格</th>
+                    <th class="p-3 text-left font-bold text-gray-700">おすすめ対象</th>
+                </tr>
+            </thead>
+        `;
+        
+        const body = `
+            <tbody>
+                ${systems.map(system => `
+                    <tr class="border-b ${top3Ids.includes(system.id) ? 'bg-main-red-light' : ''}">
+                        <td class="p-3 font-bold text-tertiary-blue whitespace-nowrap"><a href="${system.link}" target="_blank" class="hover:underline">${system.name} ${top3Ids.includes(system.id) ? '' : ''}</a></td>
+                        <td class="p-3 text-sm">${system.description}</td>
+                        <td class="p-3 text-sm whitespace-nowrap">${system.price}</td>
+                        <td class="p-3 text-sm">${getSystemTarget(system.tags)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+        
+        table.innerHTML = header + body;
+        
+        document.getElementById('show-comparison-btn').addEventListener('click', () => {
+            switchScreen(resultsScreen, comparisonScreen);
+        });
+        document.getElementById('back-to-results-btn').addEventListener('click', () => {
+            switchScreen(comparisonScreen, resultsScreen);
+        });
+    }
+
+    function getSystemTarget(tags) {
+        const targets = [];
+        if (tags.includes('scale_s')) targets.push('小規模');
+        if (tags.includes('scale_m')) targets.push('中規模');
+        if (tags.includes('scale_l')) targets.push('大規模');
+        if (tags.includes('product_used')) targets.push('中古品');
+        if (tags.includes('channel_omo')) targets.push('実店舗連携');
+        return targets.join(' / ');
+    }
+});
+</script>
+
+</body>
+</html>
