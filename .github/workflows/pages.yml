@@ -2,8 +2,7 @@ name: Deploy static content to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -25,10 +24,9 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v1  # ✅ Pages専用でOK！
         with:
-          path: .  # ← index.html があるディレクトリ
+          path: .
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v2
-
