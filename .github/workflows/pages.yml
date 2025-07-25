@@ -29,9 +29,9 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v1  # ✅ これが正しい！
         with:
-          path: docs  # ← docs/index.html がある場合（必要に応じて . に変更）
+          path: docs  # ← index.html が docs フォルダ内にある場合
 
       - name: Deploy to GitHub Pages
         id: deployment
