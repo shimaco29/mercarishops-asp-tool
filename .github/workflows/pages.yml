@@ -23,10 +23,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1  # ✅ Pages専用でOK！
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v1  # ✅ Pages用アーティファクト。これだけでOK！
         with:
-          path: .
+          path: .  # ← index.html のあるディレクトリ
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy GitHub Pages site
         uses: actions/deploy-pages@v2
